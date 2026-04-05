@@ -48,7 +48,7 @@
       {% assign products_per_page = section.settings.products_per_page %}
     {% endif %}
 
-    {% paginate collection.products by products_per_page %}
+    {% paginate collection.products by 250 %}
       {% capture children %}
         {% for product in collection.products %}
           <li
@@ -56,6 +56,7 @@
             class="product-grid__item product-grid__item--{{ forloop.index0 }}"
             data-page="{{ paginate.current_page }}"
             data-product-id="{{ product.id }}"
+            data-featured="{% if product.tags contains 'featured' %}true{% else %}false{% endif %}"
             ref="cards[]"
           >
             {% # theme-check-disable %}

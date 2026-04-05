@@ -76,3 +76,52 @@ export default class ResultsList extends PaginatedList {
 if (!customElements.get('results-list')) {
   customElements.define('results-list', ResultsList);
 }
+
+/* Logic for infinite scroll and featured products */
+let allProducts = [];
+let renderedIndex = 0;
+
+function initProducts() {
+  const list = document.getElementById("product-list");
+  const items = Array.from(list.children);
+
+  let featured = [];
+  let normal = [];
+
+  items.forEach(item => {
+    if (item.dataset.featured === "true") {
+      featured.push(item);
+    } else {
+      normal.push(item);
+    }
+  });
+
+  featured = featured.slice(0, 15);
+  const firstNormal = normal.slice(0, 21 - featured.length);
+  allProducts = normal.slice(21 - featured.length);
+
+  list.innerHTML = "";
+
+  [...featured, ...firstNormal].forEach(el => list.appendChild(el));
+
+  renderedIndex = 0;
+}
+
+function loadMoreProducts() {
+  if (renderedIndex >= allProducts.length) return;
+
+  const list = document.getElementById("product-list");
+  const nextItems = allProducts.slice(renderedIndex, renderedIndex + 20);
+
+  nextItems.forEach(el => list.appendChild(el));
+
+  renderedIndex += 20;
+}
+
+window.addEventListener("scroll", function() {
+  if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+    loadMoreProducts();
+  }
+});
+
+document.addEventListener("DOMContentLoaded", initProducts);
