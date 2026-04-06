@@ -1,70 +1,96 @@
-Shopify Featured Products Assignment
-Overview
+# amplicomm-shopify-assignment
 
-This project demonstrates a Shopify collection page where:
+## Basic Setup
 
-100 sample products are present.
-Exactly 15 products are tagged "featured" in random positions.
-Infinite scroll loads 20 products per request.
-All featured products always appear at the top of the collection.
-Remaining products load after the featured ones.
-Sorting and filtering continue to work normally.
-Duplicate products are prevented.
+1. Imported 100 sample products, with exactly 15 products tagged as **"featured"** at random positions.
+2. Created a separate public GitHub repository named **amplicomm-shopify-assignment**.
+3. Logged into the Shopify store via CLI and pulled the theme to the local environment.
+4. Uploaded the theme to the Git repository, connected the Shopify store with Git, and published the theme from the repository.
+5. Applied changes in the local environment, verified functionality, and pushed the final version to Git.
 
-Basic Setup
-Imported 100 sample products, with exactly 15 products tagged "featured" at random positions.
-Created a separate public GitHub repository named amplicomm-shopify-assignment.
-Logged into the Shopify store via CLI and pulled the theme locally.
-Uploaded the theme to GitHub, connected the Shopify store, and published the theme.
-Applied changes locally, verified functionality, and pushed the final version to Git.
+---
 
-Functionality Explanation
-main-collection.liquid
-Increased pagination limit to 250 (Shopify's maximum limit).
-Reason: Tagged products are in random positions. Filtering by tag in Liquid only works on products loaded on the page. If the limit is set too low (e.g., 20), some featured products may not appear.
+## Functionality Explanation
 
-Added data-featured attribute to <li>:
+### `main-collection.liquid`
 
+1. **Increased pagination limit to 250 (Shopify's maximum limit)**
+   **Reason:**
+   Tagged products are randomly positioned, and Liquid filtering works only on the products loaded on the page. If the limit is too low (e.g., 20), some featured products may not be included in the loaded set.
+
+2. **Added `data-featured` attribute to `<li>`**
+
+```liquid
 <li data-featured="{% if product.tags contains 'featured' %}true{% else %}false{% endif %}">
-Reason: Categorizes featured and non-featured products for use in JavaScript arrays.
+```
 
-Note: Initially, I tried to categorize featured vs non-featured products entirely in Liquid using two loops. However, Shopify applies sorting and filtering separately for each loop, which breaks expected behavior. Therefore, the final solution handles separation client-side via JavaScript.
+**Reason:**
+This helps categorize featured and non-featured products, allowing JavaScript to create separate arrays for display logic.
 
-product-grid.liquid
+---
 
-Added id to <ul> element:
+### `product-grid.liquid`
 
+3. **Added `id` attribute to `<ul>`**
+
+```html
 <ul id="product-list">
-Reason: Used as a selector in JavaScript to fetch child product grid items.
-util-product-grid-card-size.liquid
+```
 
-Decreased product grid size from 250px to 200px for medium view:
+**Reason:**
+Used as a selector in JavaScript to access and manipulate product grid items.
 
+---
+
+### `util-product-grid-card-size.liquid`
+
+4. **Adjusted product grid size from 250px to 200px (medium view)**
+
+```liquid
 {% assign product_card_size = '200px' %}
-Reason: Medium view originally shows 4 products per row. Reducing the size allows 5 products per row, ensuring all 15 featured products display properly in 3 rows.
-results.list.js
+```
 
-Variable Initialization
+**Reason:**
+The default layout shows 4 products per row. Reducing the size allows 5 products per row, improving UI and ensuring all 15 featured products are displayed neatly in 3 rows.
 
+---
+
+### `results.list.js`
+
+1. **Variable Initialization**
+
+```javascript
 let allProducts = [];
 let renderedIndex = 0;
-allProducts stores extra products not displayed initially.
-renderedIndex tracks how many extra products have been appended.
+```
 
-Initialize products on page load
+* `allProducts`: Stores products not shown initially
+* `renderedIndex`: Tracks how many products have been rendered
 
+2. **Initialize Products on Page Load**
+
+```javascript
 function initProducts() { ... }
-Displays the first 20 products: 15 featured + 5 normal.
+```
 
-Get product list
+Displays the first batch of products.
 
+3. **Get Product List**
+
+```javascript
 const list = document.getElementById("product-list");
 const items = Array.from(list.children);
+```
 
-Separate featured and normal products
+* `list`: Container element
+* `items`: Array of product elements
 
+4. **Separate Featured and Normal Products**
+
+```javascript
 let featured = [];
 let normal = [];
+
 items.forEach(item => {
   if (item.dataset.featured === "true") {
     featured.push(item);
@@ -72,69 +98,125 @@ items.forEach(item => {
     normal.push(item);
   }
 });
+```
 
-Limit number of products to show initially
+5. **Limit Initial Products**
 
+```javascript
 featured = featured.slice(0, 15);
 const firstNormal = normal.slice(0, 21 - featured.length);
 allProducts = normal.slice(21 - featured.length);
+```
 
-Clear product list before rendering
+* Shows up to 15 featured products
+* Fills remaining slots with normal products (total ~20)
+* Stores remaining products for lazy loading
 
+6. **Clear Product List**
+
+```javascript
 list.innerHTML = "";
+```
 
-Append initial products
+7. **Append Initial Products**
 
+```javascript
 [...featured, ...firstNormal].forEach(el => list.appendChild(el));
 renderedIndex = 0;
+```
 
-Load more products on scroll
+8. **Load More Products (Infinite Scroll)**
 
+```javascript
 function loadMoreProducts() {
   if (renderedIndex >= allProducts.length) return;
+
+  const list = document.getElementById("product-list");
   const nextItems = allProducts.slice(renderedIndex, renderedIndex + 20);
+
   nextItems.forEach(el => list.appendChild(el));
   renderedIndex += 20;
 }
+```
 
-Scroll event detection
+9. **Scroll Detection**
 
+```javascript
 window.addEventListener("scroll", function() {
   if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
     loadMoreProducts();
   }
 });
+```
 
-Run initialization after DOM loaded
+10. **Run on Page Load**
 
+```javascript
 document.addEventListener("DOMContentLoaded", initProducts);
-Important Notes & Limitations
-Shopify is client-side, so filtering by tag before fetching all products is not possible. Hence, we fetch 250 products per page.
-Slight flicker occurs because normal products load first, then featured products are rearranged via JavaScript.
-Attempting to separate featured products in Liquid using two loops breaks sorting and filtering because Shopify applies them separately per loop. Therefore, JavaScript separation ensures correct order and infinite scroll.
-Sorting (Best Selling, Price Low → High, Price High → Low) works normally after rearranging featured products.
-Filters temporarily override featured pinning, matching Shopify’s default behavior.
-Solution scales for large collections by handling separation and infinite scroll client-side without performance issues.
-Edge Case Handling
-Edge Case	Expected Behavior
-No featured products	Normal infinite scroll behavior applies; no featured pinning
-Filters applied	Sorting and filtering temporarily override featured logic
-Very large collection	Fetch up to 250 products; infinite scroll handles remaining products efficiently
-Featured products in later pages	Already displayed featured products are not repeated
-Attempted Code in Liquid (Not Implemented)
+```
 
-I tried categorizing featured and non-featured products entirely in Liquid using two loops:
+---
 
-{% for product in collection.products %}
-  {% if product.tags contains 'featured' %}
-    <!-- featured product markup -->
-  {% endif %}
-{% endfor %}
+## Important Notes
 
-{% for product in collection.products %}
-  {% unless product.tags contains 'featured' %}
-    <!-- normal product markup -->
-  {% endunless %}
-{% endfor %}
+1. Shopify operates on a client-side rendering approach for this case. Filtering tagged products before loading is not possible, which is why 250 products are fetched instead of 20.
 
-Issue: Shopify applies sorting and filters separately for each loop, which breaks sorting/filtering consistency. Therefore, this approach was not implemented in the final solution.
+2. A slight flickering issue occurs on page load:
+
+   * Products initially render in default order via Liquid
+   * JavaScript then rearranges them to prioritize featured products
+
+3. An alternative Liquid-based approach (using two loops) was considered, but due to Shopify limitations:
+
+   * Sorting and filtering apply separately to each loop
+   * This prevents consistent global ordering
+
+---
+
+## Code Example
+
+```liquid
+{% paginate collection.products by 250 %}
+  {% capture children %}
+
+    {% for product in collection.products %}
+      {% if product.tags contains 'featured' %}
+      <li
+        id="{{ section.id }}-{{ product.id }}"
+        class="product-grid__item product-grid__item--{{ forloop.index0 }}"
+        data-page="{{ paginate.current_page }}"
+        data-product-id="{{ product.id }}"
+        data-featured="true"
+        ref="cards[]"
+      >
+        {% content_for 'block', type: '_product-card', id: 'product-card', closest.product: product %}
+      </li>
+      {% endif %}
+    {% endfor %}
+
+    {% for product in collection.products %}
+      {% unless product.tags contains 'featured' %}
+      <li
+        id="{{ section.id }}-{{ product.id }}"
+        class="product-grid__item product-grid__item--{{ forloop.index0 }}"
+        data-page="{{ paginate.current_page }}"
+        data-product-id="{{ product.id }}"
+        data-featured="false"
+        ref="cards[]"
+      >
+        {% content_for 'block', type: '_product-card', id: 'product-card', closest.product: product %}
+      </li>
+      {% endunless %}
+    {% endfor %}
+
+  {% endcapture %}
+
+  {% render 'product-grid',
+    section: section,
+    children: children,
+    products: collection.products,
+    paginate: paginate,
+    enable_infinite_scroll: section.settings.enable_infinite_scroll
+  %}
+{% endpaginate %}
+```
